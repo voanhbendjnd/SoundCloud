@@ -1,0 +1,59 @@
+package djnd.project.SoundCloud.utils.error;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import djnd.project.SoundCloud.domain.response.RestResponse;
+
+@RestControllerAdvice
+public class GlobalException {
+    @ExceptionHandler(value = {
+            UsernameNotFoundException.class,
+            BadCredentialsException.class,
+    })
+    public ResponseEntity<RestResponse<Object>> handleIdException(Exception ex) {
+        var res = new RestResponse<>();
+        var status = HttpStatus.BAD_REQUEST.value();
+        res.setStatusCode(status);
+        res.setError("ID exception!");
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+    }
+
+    @ExceptionHandler(value = {
+            MethodArgumentNotValidException.class
+    })
+    public ResponseEntity<RestResponse<Object>> handleEntityException(MethodArgumentNotValidException ex) {
+        var result = ex.getBindingResult();
+        final List<FieldError> fieldErrors = result.getFieldErrors();
+        var res = new RestResponse<>();
+        var status = HttpStatus.BAD_REQUEST.value();
+        res.setStatusCode(status);
+        res.setError(ex.getBody().getDetail());
+        var errors = fieldErrors.stream().map(f -> f.getDefaultMessage()).collect(Collectors.toList());
+        res.setMessage(errors.size() > 1 ? errors : errors.get(0));
+        return ResponseEntity.status(status).body(res);
+
+    }
+
+    @ExceptionHandler(value = {
+            DuplicateResourceException.class
+    })
+    public ResponseEntity<RestResponse<Object>> handleDuplicateResourceException(DuplicateResourceException ex) {
+        var status = HttpStatus.CONFLICT.value();
+        var res = new RestResponse<>();
+        res.setError("Duplicate resource!");
+        res.setStatusCode(status);
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+    }
+}
