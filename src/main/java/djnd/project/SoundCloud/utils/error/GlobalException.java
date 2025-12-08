@@ -5,12 +5,14 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import djnd.project.SoundCloud.domain.response.RestResponse;
 
@@ -46,7 +48,8 @@ public class GlobalException {
     }
 
     @ExceptionHandler(value = {
-            DuplicateResourceException.class
+            DuplicateResourceException.class,
+
     })
     public ResponseEntity<RestResponse<Object>> handleDuplicateResourceException(DuplicateResourceException ex) {
         var status = HttpStatus.CONFLICT.value();
@@ -54,6 +57,26 @@ public class GlobalException {
         res.setError("Duplicate resource!");
         res.setStatusCode(status);
         res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+    }
+
+    @ExceptionHandler(value = { ResourceNotFoundException.class })
+    public ResponseEntity<RestResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        var status = HttpStatus.BAD_REQUEST.value();
+        var res = new RestResponse<>();
+        res.setError("Not found!");
+        res.setStatusCode(status);
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+    }
+
+    @ExceptionHandler(value = { HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class })
+    public ResponseEntity<RestResponse<Object>> handleJsonParsingException(HttpMessageNotReadableException ex) {
+        var status = HttpStatus.BAD_REQUEST.value();
+        var res = new RestResponse<>();
+        res.setStatusCode(status);
+        res.setMessage(ex.getMessage());
+        res.setError("Invalid JSON or Data Type Mismatch!");
         return ResponseEntity.status(status).body(res);
     }
 }
