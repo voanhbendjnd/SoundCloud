@@ -51,7 +51,7 @@ public class PermissionController {
     }
 
     @DeleteMapping("/{id}")
-    @ApiMessage("Delete permissino by ID")
+    @ApiMessage("Delete permission by ID")
     public ResponseEntity<Void> delete(@PathVariable("id") long id) {
         this.permissionService.delete(id);
         return ResponseEntity.ok(null);

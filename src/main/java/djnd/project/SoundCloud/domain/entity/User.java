@@ -1,8 +1,5 @@
 package djnd.project.SoundCloud.domain.entity;
 
-import java.time.Instant;
-
-import djnd.project.SoundCloud.utils.SecurityUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
