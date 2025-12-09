@@ -2,7 +2,6 @@ package djnd.project.SoundCloud.services;
 
 import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -12,19 +11,19 @@ import djnd.project.SoundCloud.domain.request.users.UserDTO;
 import djnd.project.SoundCloud.domain.request.users.UserUpdateDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
 import djnd.project.SoundCloud.domain.response.users.ResUser;
-import djnd.project.SoundCloud.mapper.UserMapper;
 import djnd.project.SoundCloud.repositories.UserRepository;
+import djnd.project.SoundCloud.utils.convert.convertUtils;
 import djnd.project.SoundCloud.utils.error.DuplicateResourceException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
-    private final UserMapper userMapper;
+    // private final UserMapper userMapper;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper) {
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.userMapper = userMapper;
+        // this.userMapper = userMapper;
     }
 
     public Long create(UserDTO dto) {
@@ -49,25 +48,22 @@ public class UserService {
             user.setEmail(dto.getEmail());
         }
         var lastUser = this.userRepository.save(user);
-        var res = new ResUser();
-        res.setEmail(lastUser.getEmail());
-        res.setId(lastUser.getId());
-        res.setName(lastUser.getName());
-        return res;
+        return convertUtils.toResUser(lastUser);
 
     }
 
     public ResUser update(UserUpdateDTO dto) {
         var user = this.userRepository.findById(dto.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("ID", dto.getId() + ""));
-        this.userMapper.updateUserFromDTO(dto, user);
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
         var lastUser = this.userRepository.save(user);
-        return this.userMapper.toResUser(lastUser);
+        return convertUtils.toResUser(lastUser);
     }
 
     public ResUser findById(long id) {
         var user = this.userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("ID", id + ""));
-        return this.userMapper.toResUser(user);
+        return convertUtils.toResUser(user);
     }
 
     public void deleteById(long id) {
@@ -85,7 +81,7 @@ public class UserService {
         mt.setTotal(page.getTotalElements());
         res.setMeta(mt);
         res.setResult(page.getContent().stream().map(u -> {
-            var resUser = this.userMapper.toResUser(u);
+            var resUser = convertUtils.toResUser(u);
             return resUser;
         }).collect(Collectors.toList()));
         return res;
