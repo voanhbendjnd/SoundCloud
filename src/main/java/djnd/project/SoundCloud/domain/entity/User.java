@@ -7,8 +7,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -33,22 +31,5 @@ public class User extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "role_id")
     Role role;
-    String createdBy, updatedBy;
-    Instant createdAt, updatedAt;
 
-    @PrePersist
-    public void handleBeforeCreateAt() {
-        this.createdBy = SecurityUtils.getCurrentUserLogin().isPresent() == true
-                ? SecurityUtils.getCurrentUserLogin().get()
-                : "";
-        this.createdAt = Instant.now();
-    }
-
-    @PreUpdate
-    public void handleBeforeUpdateBy() {
-        this.updatedBy = SecurityUtils.getCurrentUserLogin().isPresent() == true
-                ? SecurityUtils.getCurrentUserLogin().get()
-                : "";
-        this.updatedAt = Instant.now();
-    }
 }
