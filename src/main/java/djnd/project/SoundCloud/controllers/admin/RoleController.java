@@ -1,4 +1,4 @@
-package djnd.project.SoundCloud.controllers;
+package djnd.project.SoundCloud.controllers.admin;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;

@@ -28,5 +28,7 @@ public class User extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "role_id")
     Role role;
+    @Column(columnDefinition = "MEDIUMTEXT")
+    String refreshToken;
 
 }

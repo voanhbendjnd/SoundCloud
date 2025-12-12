@@ -19,8 +19,19 @@ import djnd.project.SoundCloud.domain.response.RestResponse;
 @RestControllerAdvice
 public class GlobalException {
     @ExceptionHandler(value = {
+            BadCredentialsException.class
+    })
+    public ResponseEntity<RestResponse<Object>> handleBadCredentialException(BadCredentialsException ex) {
+        var status = HttpStatus.UNAUTHORIZED.value();
+        var res = new RestResponse<>();
+        res.setStatusCode(status);
+        res.setMessage(ex.getMessage());
+        res.setError("Login Failed");
+        return ResponseEntity.status(status).body(res);
+    }
+
+    @ExceptionHandler(value = {
             UsernameNotFoundException.class,
-            BadCredentialsException.class,
     })
     public ResponseEntity<RestResponse<Object>> handleIdException(Exception ex) {
         var res = new RestResponse<>();
@@ -79,4 +90,5 @@ public class GlobalException {
         res.setError("Invalid JSON or Data Type Mismatch!");
         return ResponseEntity.status(status).body(res);
     }
+
 }

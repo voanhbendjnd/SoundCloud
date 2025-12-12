@@ -87,4 +87,12 @@ public class UserService {
         return res;
     }
 
+    public void updateRefreshTokenByEmail(String email, String refreshToken) {
+        var user = this.userRepository.findByEmail(email);
+        if (user != null) {
+            user.setRefreshToken(refreshToken);
+            this.userRepository.save(user);
+        }
+    }
+
 }
