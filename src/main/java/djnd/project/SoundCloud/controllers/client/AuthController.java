@@ -8,7 +8,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,11 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 import djnd.project.SoundCloud.configs.CustomUserDetails;
 import djnd.project.SoundCloud.domain.ResLoginDTO;
 import djnd.project.SoundCloud.domain.request.LoginDTO;
-import djnd.project.SoundCloud.repositories.UserRepository;
+import djnd.project.SoundCloud.domain.request.users.UserDTO;
 import djnd.project.SoundCloud.services.SessionManager;
 import djnd.project.SoundCloud.services.UserService;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
+import djnd.project.SoundCloud.utils.error.PasswordMismatchException;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -30,19 +30,15 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/api/v1/auth")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthController {
-    PasswordEncoder passwordEncoder;
     UserService userService;
-    UserRepository userRepository;
     AuthenticationManagerBuilder builder;
     SessionManager sessionManager;
     SecurityUtils securityUtils;
     @Value("${djnd.jwt.refresh-token-validity-in-seconds}")
     Long refreshTokenExpiration;
 
-    public AuthController(PasswordEncoder passwordEncoder, UserService userService, UserRepository userrRepository,
+    public AuthController(UserService userService,
             AuthenticationManagerBuilder builder, SessionManager sessionManager, SecurityUtils securityUtils) {
-        this.passwordEncoder = passwordEncoder;
-        this.userRepository = userrRepository;
         this.userService = userService;
         this.sessionManager = sessionManager;
         this.securityUtils = securityUtils;
@@ -82,4 +78,13 @@ public class AuthController {
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).body(res);
     }
 
+    @PostMapping("/register")
+    @ApiMessage("Sign in account with email")
+    public ResponseEntity<Long> register(@RequestBody @Valid UserDTO dto) {
+        if (!dto.getConfirmPassword().equals(dto.getPassword())) {
+            throw new PasswordMismatchException("Password and Confirm Password not the same!");
+        }
+        return ResponseEntity.ok(this.userService.register(dto));
+
+    }
 }

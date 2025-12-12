@@ -14,7 +14,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UserDTO {
     private Long id;
-    @NotBlank(message = "Name cannot be empty!")
     private String name;
     @Email(message = "Email in correct format!")
     @NotBlank(message = "Email cannot be empty!")
@@ -22,4 +21,7 @@ public class UserDTO {
     @NotBlank(message = "Password cannot be empty!")
     @Size(min = 6, message = "Password must be least 6 character!")
     private String password;
+    @NotBlank(message = "Confirm Password cannot be Empty!")
+    @Size(min = 6, message = "Password must be least 6 character!")
+    private String confirmPassword;
 }

@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import djnd.project.SoundCloud.domain.entity.User;
@@ -19,10 +20,12 @@ import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     // private final UserMapper userMapper;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         // this.userMapper = userMapper;
     }
 
@@ -93,6 +96,17 @@ public class UserService {
             user.setRefreshToken(refreshToken);
             this.userRepository.save(user);
         }
+    }
+
+    public long register(UserDTO dto) {
+        if (this.userRepository.existsByEmail(dto.getEmail().toLowerCase())) {
+            throw new DuplicateResourceException("Email User", dto.getEmail());
+        }
+        var user = new User();
+        user.setEmail(dto.getEmail());
+        user.setPassword(this.passwordEncoder.encode(dto.getConfirmPassword()));
+        var lastUser = this.userRepository.save(user);
+        return lastUser.getId();
     }
 
 }

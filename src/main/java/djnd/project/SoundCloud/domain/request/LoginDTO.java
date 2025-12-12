@@ -15,7 +15,8 @@ import lombok.experimental.FieldDefaults;
 public class LoginDTO {
     @NotBlank(message = "Email cannot be Empty!")
     @Email(message = "Email Invalid Format!")
-    private String email;
+    String email;
     @NotBlank(message = "Password cannot be Empty!")
-    private String password;
+    String password;
+
 }

@@ -91,4 +91,16 @@ public class GlobalException {
         return ResponseEntity.status(status).body(res);
     }
 
+    @ExceptionHandler(value = {
+            PasswordMismatchException.class
+    })
+    public ResponseEntity<RestResponse<Object>> handlePasswordMismatch(PasswordMismatchException ex) {
+        var status = HttpStatus.BAD_REQUEST.value();
+        var res = new RestResponse<>();
+        res.setStatusCode(status);
+        res.setError("Password!");
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+    }
+
 }
