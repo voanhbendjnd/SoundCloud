@@ -20,13 +20,11 @@ import djnd.project.SoundCloud.configs.CustomUserDetails;
 import djnd.project.SoundCloud.domain.ResLoginDTO;
 import djnd.project.SoundCloud.domain.request.LoginDTO;
 import djnd.project.SoundCloud.domain.request.users.UserDTO;
-import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.services.SessionManager;
 import djnd.project.SoundCloud.services.UserService;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
 import djnd.project.SoundCloud.utils.error.PasswordMismatchException;
-import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -39,18 +37,15 @@ public class AuthController {
     AuthenticationManagerBuilder builder;
     SessionManager sessionManager;
     SecurityUtils securityUtils;
-    UserRepository userRepository;
     @Value("${djnd.jwt.refresh-token-validity-in-seconds}")
     Long refreshTokenExpiration;
 
     public AuthController(UserService userService,
-            AuthenticationManagerBuilder builder, SessionManager sessionManager, SecurityUtils securityUtils,
-            UserRepository userRepository) {
+            AuthenticationManagerBuilder builder, SessionManager sessionManager, SecurityUtils securityUtils) {
         this.userService = userService;
         this.sessionManager = sessionManager;
         this.securityUtils = securityUtils;
         this.builder = builder;
-        this.userRepository = userRepository;
     }
 
     @PostMapping("/login")
@@ -101,12 +96,41 @@ public class AuthController {
     public ResponseEntity<ResLoginDTO> resetRefreshToken(
             @CookieValue(name = "refresh_token", defaultValue = "invalid") String refreshToken) {
         if (refreshToken.equals("invalid")) {
-            throw new BadCredentialsException("Refresh Token invalid!");
+            throw new BadCredentialsException("Refresh Token Invalid!");
         }
-        var res = this.userService.handleRefreshToken(refreshToken);
+        var res = this.userService.handleRefreshTokenWithCondition(refreshToken, "refresh");
         var cookie = ResponseCookie.from("refresh_token", res.getRefreshToken())
                 .httpOnly(true).secure(true).path("/").maxAge(refreshTokenExpiration).build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).body(res);
+    }
+
+    @PutMapping("/logout")
+    @ApiMessage("Logout Account")
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = "refresh_token", defaultValue = "invalid") String refreshToken) {
+        if (refreshToken.equals("invalid")) {
+            throw new BadCredentialsException("Refresh Token Invalid");
+        }
+        this.userService.handleRefreshTokenWithCondition(refreshToken, "delete");
+        return ResponseEntity.ok(null);
+    }
+
+    @PostMapping("/logout")
+    @ApiMessage("Logout Account")
+    public ResponseEntity<Void> logoutWithCookie() {
+        var email = SecurityUtils.getCurrentUserLogin().isPresent() ? securityUtils.getCurrentUserLogin().get() : "";
+        if (email.equals("")) {
+            throw new BadCredentialsException("Account Invalid");
+        }
+        this.userService.logout(email);
+        var cookie = ResponseCookie.from("refresh_token", "").httpOnly(true).secure(true).path("/").maxAge(0).build();
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).body(null);
+    }
+
+    @GetMapping("/account")
+    @ApiMessage("Get Account")
+    public ResponseEntity<ResLoginDTO.UserGetAccount> getAccount() {
+        return ResponseEntity.ok(this.userService.getAccount());
     }
 
 }

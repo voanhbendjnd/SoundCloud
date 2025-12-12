@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -68,7 +69,8 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Collecti
             if (!isValidSession) {
                 // Session không hợp lệ → User đã login ở nơi khác
                 // Throw exception → Spring Security sẽ trả về 401
-                throw new RuntimeException("Session expired or invalid");
+                // throw new RuntimeException("Session expired or invalid");
+                throw new BadCredentialsException("Session expired or invalid. Please re-authenticate.");
             }
         }
 

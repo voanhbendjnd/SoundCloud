@@ -37,11 +37,8 @@ public class SmartAuthenticationEntryPoint implements AuthenticationEntryPoint {
         String errorMessage = """
                 {
                     "error": "Unauthorized",
-                    "message": "(session expired) Please login to access this resource",
-                    "code": "UNAUTHORIZED",
-                    "publicApi": false,
-                    "redirect": true,
-                    "redirectUrl": "/login"
+                    "message": "Access token is invalid or expired.",
+                    "code": "JWT_INVALID"
                 }
                 """;
         response.getWriter().write(errorMessage);

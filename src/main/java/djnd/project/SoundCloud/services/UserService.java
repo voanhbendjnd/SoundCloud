@@ -2,8 +2,11 @@ package djnd.project.SoundCloud.services;
 
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,7 @@ import djnd.project.SoundCloud.domain.request.users.UserDTO;
 import djnd.project.SoundCloud.domain.request.users.UserUpdateDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
 import djnd.project.SoundCloud.domain.response.users.ResUser;
+import djnd.project.SoundCloud.repositories.RoleRepository;
 import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.convert.convertUtils;
@@ -31,6 +35,7 @@ public class UserService {
     PasswordEncoder passwordEncoder;
     SecurityUtils securityUtils;
     SessionManager sessionManager;
+    RoleRepository roleRepository;
     // private final UserMapper userMapper;
 
     public Long create(UserDTO dto) {
@@ -109,11 +114,12 @@ public class UserService {
         var user = new User();
         user.setEmail(dto.getEmail());
         user.setPassword(this.passwordEncoder.encode(dto.getConfirmPassword()));
+        user.setRole(this.roleRepository.findByName("USER_NORMAL"));
         var lastUser = this.userRepository.save(user);
         return lastUser.getId();
     }
 
-    public ResLoginDTO handleRefreshToken(String refreshToken) {
+    public ResLoginDTO handleRefreshTokenWithCondition(String refreshToken, String condition) {
         var res = new ResLoginDTO();
         var userLogin = new ResLoginDTO.UserLogin();
         var decodedToken = this.securityUtils.checkValidRefreshToken(refreshToken);
@@ -123,20 +129,55 @@ public class UserService {
         }
         var user = this.userRepository.findByEmailAndRefreshToken(email, refreshToken);
         if (user != null) {
-            userLogin.setEmail(email);
-            userLogin.setId(user.getId());
-            userLogin.setName(user.getName());
-            userLogin.setRole(user.getRole().getName());
-            res.setUser(userLogin);
-            var sessionID = this.sessionManager.createNewSession(user);
-            var accessToken = this.securityUtils.createAccessToken(email, res, sessionID);
-            res.setAccessToken(accessToken);
-            var newRefreshToken = this.securityUtils.createRefreshToken(email, res);
-            updateRefreshTokenByEmail(email, newRefreshToken);
-            res.setRefreshToken(newRefreshToken);
-            return res;
+            if (condition.equals("delete")) {
+                this.sessionManager.invalidateSession(email);
+                updateRefreshTokenByEmail(email, null);
+                return new ResLoginDTO();
+            }
+            if (condition.equals("refresh")) {
+                userLogin.setEmail(email);
+                userLogin.setId(user.getId());
+                userLogin.setName(user.getName());
+                userLogin.setRole(user.getRole().getName());
+                res.setUser(userLogin);
+                var sessionID = this.sessionManager.createNewSession(user);
+                var accessToken = this.securityUtils.createAccessToken(email, res, sessionID);
+                res.setAccessToken(accessToken);
+                var newRefreshToken = this.securityUtils.createRefreshToken(email, res);
+                updateRefreshTokenByEmail(email, newRefreshToken);
+                res.setRefreshToken(newRefreshToken);
+                return res;
+            }
         }
         throw new BadCredentialsException("Refresh Token Invalid!");
+    }
+
+    @CacheEvict(value = "userAccount", key = "'USER_ACCOUNT_' + #email")
+    public void logout(String email) {
+        var user = this.userRepository.findByEmail(email);
+        if (user != null) {
+            user.setRefreshToken(null);
+            user.setSessionId(null);
+            this.userRepository.save(user);
+        }
+    }
+
+    @Cacheable(value = "userAccount", key = "'USER_ACCOUNT_' + #email")
+    public ResLoginDTO.UserGetAccount getAccount() {
+        var email = SecurityUtils.getCurrentUserLogin()
+                .orElseThrow(() -> new BadCredentialsException("You do not have access!"));
+        var user = this.userRepository.findByEmail(email);
+        if (user != null) {
+            var res = new ResLoginDTO.UserGetAccount();
+            var userLogin = new ResLoginDTO.UserLogin();
+            userLogin.setEmail(user.getEmail());
+            userLogin.setName(user.getName());
+            userLogin.setId(user.getId());
+            userLogin.setRole(user.getRole().getName());
+            res.setUser(userLogin);
+            return res;
+        }
+        throw new ResourceNotFoundException("Account", email);
     }
 
 }

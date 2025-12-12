@@ -1,5 +1,6 @@
 package djnd.project.SoundCloud.utils.error;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -100,6 +101,16 @@ public class GlobalException {
         res.setStatusCode(status);
         res.setError("Password!");
         res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+    }
+
+    @ExceptionHandler(value = { AccessDeniedException.class })
+    public ResponseEntity<RestResponse<Object>> handleForbidden(AccessDeniedException ex) {
+        var status = HttpStatus.FORBIDDEN.value();
+        var res = new RestResponse<>();
+        res.setError("Forbidden!");
+        res.setMessage(ex.getMessage());
+        res.setStatusCode(status);
         return ResponseEntity.status(status).body(res);
     }
 
