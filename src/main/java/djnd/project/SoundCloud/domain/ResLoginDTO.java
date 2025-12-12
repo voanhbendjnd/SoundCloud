@@ -11,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResLoginDTO {
+    String refreshToken;
     String accessToken;
     UserLogin user;
 

@@ -4,30 +4,34 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import djnd.project.SoundCloud.domain.ResLoginDTO;
 import djnd.project.SoundCloud.domain.entity.User;
 import djnd.project.SoundCloud.domain.request.users.UserDTO;
 import djnd.project.SoundCloud.domain.request.users.UserUpdateDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
 import djnd.project.SoundCloud.domain.response.users.ResUser;
 import djnd.project.SoundCloud.repositories.UserRepository;
+import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.convert.convertUtils;
 import djnd.project.SoundCloud.utils.error.DuplicateResourceException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Service
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequiredArgsConstructor
 public class UserService {
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    UserRepository userRepository;
+    PasswordEncoder passwordEncoder;
+    SecurityUtils securityUtils;
+    SessionManager sessionManager;
     // private final UserMapper userMapper;
-
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        // this.userMapper = userMapper;
-    }
 
     public Long create(UserDTO dto) {
         if (this.userRepository.existsByEmail(dto.getEmail())) {
@@ -107,6 +111,32 @@ public class UserService {
         user.setPassword(this.passwordEncoder.encode(dto.getConfirmPassword()));
         var lastUser = this.userRepository.save(user);
         return lastUser.getId();
+    }
+
+    public ResLoginDTO handleRefreshToken(String refreshToken) {
+        var res = new ResLoginDTO();
+        var userLogin = new ResLoginDTO.UserLogin();
+        var decodedToken = this.securityUtils.checkValidRefreshToken(refreshToken);
+        var email = decodedToken.getSubject();
+        if (email == null) {
+            throw new BadCredentialsException("Refresh Token Invalid!");
+        }
+        var user = this.userRepository.findByEmailAndRefreshToken(email, refreshToken);
+        if (user != null) {
+            userLogin.setEmail(email);
+            userLogin.setId(user.getId());
+            userLogin.setName(user.getName());
+            userLogin.setRole(user.getRole().getName());
+            res.setUser(userLogin);
+            var sessionID = this.sessionManager.createNewSession(user);
+            var accessToken = this.securityUtils.createAccessToken(email, res, sessionID);
+            res.setAccessToken(accessToken);
+            var newRefreshToken = this.securityUtils.createRefreshToken(email, res);
+            updateRefreshTokenByEmail(email, newRefreshToken);
+            res.setRefreshToken(newRefreshToken);
+            return res;
+        }
+        throw new BadCredentialsException("Refresh Token Invalid!");
     }
 
 }

@@ -8,7 +8,10 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,11 +20,13 @@ import djnd.project.SoundCloud.configs.CustomUserDetails;
 import djnd.project.SoundCloud.domain.ResLoginDTO;
 import djnd.project.SoundCloud.domain.request.LoginDTO;
 import djnd.project.SoundCloud.domain.request.users.UserDTO;
+import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.services.SessionManager;
 import djnd.project.SoundCloud.services.UserService;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
 import djnd.project.SoundCloud.utils.error.PasswordMismatchException;
+import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -34,15 +39,18 @@ public class AuthController {
     AuthenticationManagerBuilder builder;
     SessionManager sessionManager;
     SecurityUtils securityUtils;
+    UserRepository userRepository;
     @Value("${djnd.jwt.refresh-token-validity-in-seconds}")
     Long refreshTokenExpiration;
 
     public AuthController(UserService userService,
-            AuthenticationManagerBuilder builder, SessionManager sessionManager, SecurityUtils securityUtils) {
+            AuthenticationManagerBuilder builder, SessionManager sessionManager, SecurityUtils securityUtils,
+            UserRepository userRepository) {
         this.userService = userService;
         this.sessionManager = sessionManager;
         this.securityUtils = securityUtils;
         this.builder = builder;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/login")
@@ -87,4 +95,18 @@ public class AuthController {
         return ResponseEntity.ok(this.userService.register(dto));
 
     }
+
+    @GetMapping("/auth/refresh")
+    @ApiMessage("Create new Resfresh and Access Token when User back")
+    public ResponseEntity<ResLoginDTO> resetRefreshToken(
+            @CookieValue(name = "refresh_token", defaultValue = "invalid") String refreshToken) {
+        if (refreshToken.equals("invalid")) {
+            throw new BadCredentialsException("Refresh Token invalid!");
+        }
+        var res = this.userService.handleRefreshToken(refreshToken);
+        var cookie = ResponseCookie.from("refresh_token", res.getRefreshToken())
+                .httpOnly(true).secure(true).path("/").maxAge(refreshTokenExpiration).build();
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).body(res);
+    }
+
 }
