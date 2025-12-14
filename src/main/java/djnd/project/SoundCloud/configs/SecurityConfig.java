@@ -43,7 +43,7 @@ public class SecurityConfig {
             SmartAuthenticationEntryPoint sap) throws Exception {
         String[] whiteList = {
                 "/",
-                "/api/v1/**"
+                "/api/v1/auth/**"
         };
         http
                 .csrf(c -> c.disable())
