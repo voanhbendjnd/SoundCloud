@@ -6,13 +6,13 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import djnd.project.SoundCloud.domain.ResLoginDTO;
 import djnd.project.SoundCloud.domain.entity.User;
+import djnd.project.SoundCloud.domain.request.users.UpdatePassword;
 import djnd.project.SoundCloud.domain.request.users.UserDTO;
 import djnd.project.SoundCloud.domain.request.users.UserUpdateDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
@@ -22,6 +22,7 @@ import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.convert.convertUtils;
 import djnd.project.SoundCloud.utils.error.DuplicateResourceException;
+import djnd.project.SoundCloud.utils.error.PasswordMismatchException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class UserService {
     SecurityUtils securityUtils;
     SessionManager sessionManager;
     RoleRepository roleRepository;
+    MailService mailService;
     // private final UserMapper userMapper;
 
     public Long create(UserDTO dto) {
@@ -45,7 +47,7 @@ public class UserService {
         var user = new User();
         user.setEmail(dto.getEmail());
         user.setName(dto.getName());
-        user.setPassword(dto.getPassword());
+        user.setPassword(dto.getManagementPassword().getPassword());
         var lastUser = this.userRepository.save(user);
         return lastUser.getId();
     }
@@ -113,7 +115,7 @@ public class UserService {
         }
         var user = new User();
         user.setEmail(dto.getEmail());
-        user.setPassword(this.passwordEncoder.encode(dto.getConfirmPassword()));
+        user.setPassword(this.passwordEncoder.encode(dto.getManagementPassword().getConfirmPassword()));
         user.setRole(this.roleRepository.findByName("USER_NORMAL"));
         var lastUser = this.userRepository.save(user);
         return lastUser.getId();
@@ -178,6 +180,25 @@ public class UserService {
             return res;
         }
         throw new ResourceNotFoundException("Account", email);
+    }
+
+    public boolean updatePassword(UpdatePassword dto) {
+        var email = SecurityUtils.getCurrentUserLogin()
+                .orElseThrow(() -> new BadCredentialsException("You do not have permission!"));
+        var user = this.userRepository.findByEmail(email);
+        if (user != null) {
+            if (this.passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+                if (dto.getManagementPassword().getPassword()
+                        .equals(dto.getManagementPassword().getConfirmPassword())) {
+                    user.setPassword(this.passwordEncoder.encode(dto.getManagementPassword().getConfirmPassword()));
+                    this.mailService.sendOTPToEmail(user, "Mật khẩu của bạn vừa được thay đổi", false);
+                    return true;
+                }
+            } else {
+                throw new PasswordMismatchException("Current Password Incorrect!");
+            }
+        }
+        return false;
     }
 
 }

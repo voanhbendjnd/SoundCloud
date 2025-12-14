@@ -1,8 +1,8 @@
 package djnd.project.SoundCloud.domain.request.users;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,10 +18,6 @@ public class UserDTO {
     @Email(message = "Email in correct format!")
     @NotBlank(message = "Email cannot be empty!")
     private String email;
-    @NotBlank(message = "Password cannot be empty!")
-    @Size(min = 6, message = "Password must be least 6 character!")
-    private String password;
-    @NotBlank(message = "Confirm Password cannot be Empty!")
-    @Size(min = 6, message = "Password must be least 6 character!")
-    private String confirmPassword;
+    @Valid
+    private ManagementPassword managementPassword;
 }

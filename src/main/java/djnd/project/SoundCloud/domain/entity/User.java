@@ -1,5 +1,7 @@
 package djnd.project.SoundCloud.domain.entity;
 
+import java.util.Date;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -30,5 +32,22 @@ public class User extends BaseEntity {
     Role role;
     @Column(columnDefinition = "MEDIUMTEXT")
     String refreshToken;
+    @Column(name = "one_time_password")
+    String oneTimePassword;
+    @Column(name = "otp_request_time")
+    Date otpRequestedTime;
+    private static final long OTP_VALID_DURATION = 5 * 60 * 1000; // 5 minutes
+
+    public boolean isOTPRequired() {
+        if (this.getOneTimePassword() == null) {
+            return false;
+        }
+        var currentTimeInMillis = System.currentTimeMillis();
+        var otpTime = this.otpRequestedTime.getTime();
+        if (otpTime + OTP_VALID_DURATION < currentTimeInMillis) {
+            return false;
+        }
+        return true;
+    }
 
 }

@@ -1,5 +1,6 @@
 package djnd.project.SoundCloud.controllers.client;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import djnd.project.SoundCloud.configs.CustomUserDetails;
 import djnd.project.SoundCloud.domain.ResLoginDTO;
 import djnd.project.SoundCloud.domain.request.LoginDTO;
+import djnd.project.SoundCloud.domain.request.users.UpdatePassword;
 import djnd.project.SoundCloud.domain.request.users.UserDTO;
 import djnd.project.SoundCloud.services.SessionManager;
 import djnd.project.SoundCloud.services.UserService;
@@ -84,7 +87,7 @@ public class AuthController {
     @PostMapping("/register")
     @ApiMessage("Sign in account with email")
     public ResponseEntity<Long> register(@RequestBody @Valid UserDTO dto) {
-        if (!dto.getConfirmPassword().equals(dto.getPassword())) {
+        if (!dto.getManagementPassword().getConfirmPassword().equals(dto.getManagementPassword().getPassword())) {
             throw new PasswordMismatchException("Password and Confirm Password not the same!");
         }
         return ResponseEntity.ok(this.userService.register(dto));
@@ -131,6 +134,18 @@ public class AuthController {
     @ApiMessage("Get Account")
     public ResponseEntity<ResLoginDTO.UserGetAccount> getAccount() {
         return ResponseEntity.ok(this.userService.getAccount());
+    }
+
+    @PatchMapping("/password")
+    @ApiMessage("Update password")
+    public ResponseEntity<Void> updatePasswordUser(@RequestBody UpdatePassword dto) throws BadRequestException {
+        if (this.userService.updatePassword(dto)) {
+            var cookie = ResponseCookie.from("refresh_token", "").httpOnly(true).secure(true).path("/").maxAge(0)
+                    .build();
+            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).body(null);
+        }
+        throw new BadRequestException("Bad request");
+
     }
 
 }

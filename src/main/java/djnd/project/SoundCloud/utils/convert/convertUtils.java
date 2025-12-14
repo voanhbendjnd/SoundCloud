@@ -28,7 +28,7 @@ public class convertUtils {
         user.setId(dto.getId());
         user.setEmail(dto.getEmail());
         user.setName(dto.getName());
-        user.setPassword(dto.getPassword());
+        user.setPassword(dto.getManagementPassword().getPassword());
         return user;
     }
 
