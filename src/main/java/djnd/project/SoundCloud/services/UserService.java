@@ -191,7 +191,11 @@ public class UserService {
                 if (dto.getManagementPassword().getPassword()
                         .equals(dto.getManagementPassword().getConfirmPassword())) {
                     user.setPassword(this.passwordEncoder.encode(dto.getManagementPassword().getConfirmPassword()));
-                    this.mailService.sendOTPToEmail(user, "Mật khẩu của bạn vừa được thay đổi", false);
+                    this.userRepository.save(user);
+                    // this.mailService.sendOTPToEmail(user, "Mật khẩu của bạn vừa được thay đổi",
+                    // false);
+
+                    this.mailService.setUpAndSendFormUpdatePassword(convertUtils.toResUser(user));
                     return true;
                 }
             } else {

@@ -1,5 +1,7 @@
 package djnd.project.SoundCloud.domain.request.users;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -19,5 +21,7 @@ public class UserDTO {
     @NotBlank(message = "Email cannot be empty!")
     private String email;
     @Valid
+    @JsonProperty("management_password")
+
     private ManagementPassword managementPassword;
 }

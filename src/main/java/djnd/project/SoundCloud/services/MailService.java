@@ -17,6 +17,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import djnd.project.SoundCloud.domain.entity.User;
+import djnd.project.SoundCloud.domain.response.users.ResUser;
 import djnd.project.SoundCloud.repositories.UserRepository;
 import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
@@ -91,6 +92,11 @@ public class MailService {
 
     }
 
+    public void setUpAndSendFormUpdatePassword(ResUser user) {
+        this.sendNotificationUpdatePassword(user.getEmail(), "Mật Khẩu Sound Cloud Vừa Được Thay Đổi",
+                "update-password", user.getEmail(), user.getName());
+    }
+
     /*
      * context: include data
      * tmplate: name file .html
@@ -103,6 +109,16 @@ public class MailService {
         var at = new ArrayList<FileSystemResource>();
         var content = this.templateEngine.process(tmplate, ctx);
         this.sendEmailSync(to, subject, content, false, true, at);
+    }
+
+    @Async
+    public void sendNotificationUpdatePassword(String to, String sub, String tmplate, String email, String name) {
+        var ctx = new Context();
+        ctx.setVariable("name", name);
+        ctx.setVariable("email", email);
+        var at = new ArrayList<FileSystemResource>();
+        var content = this.templateEngine.process(tmplate, ctx);
+        this.sendEmailSync(to, sub, content, false, true, at);
     }
 
 }
