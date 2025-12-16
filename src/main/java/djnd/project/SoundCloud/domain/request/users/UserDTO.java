@@ -22,6 +22,5 @@ public class UserDTO {
     private String email;
     @Valid
     @JsonProperty("management_password")
-
     private ManagementPassword managementPassword;
 }

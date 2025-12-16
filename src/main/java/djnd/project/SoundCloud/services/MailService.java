@@ -85,11 +85,7 @@ public class MailService {
             var otp = this.generateOTP(user);
             this.send(user.getEmail(), otp + msg, "index",
                     user.getName() != null ? user.getName() : user.getEmail(), otp);
-        } else {
-            this.send(user.getEmail(), msg, "index",
-                    user.getName() != null ? user.getName() : user.getEmail(), "Mật khẩu");
         }
-
     }
 
     public void setUpAndSendFormUpdatePassword(ResUser user) {

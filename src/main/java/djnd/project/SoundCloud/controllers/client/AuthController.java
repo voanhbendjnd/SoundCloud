@@ -148,4 +148,11 @@ public class AuthController {
 
     }
 
+    @PostMapping("/forgot-password/request")
+    @ApiMessage("Forgot password")
+    public ResponseEntity<Void> forgorPassword(@RequestBody UserDTO dto) {
+        this.userService.forgotPasword(dto);
+        return ResponseEntity.ok(null);
+    }
+
 }

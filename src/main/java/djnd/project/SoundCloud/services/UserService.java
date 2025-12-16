@@ -114,6 +114,7 @@ public class UserService {
             throw new DuplicateResourceException("Email User", dto.getEmail());
         }
         var user = new User();
+        user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setPassword(this.passwordEncoder.encode(dto.getManagementPassword().getConfirmPassword()));
         user.setRole(this.roleRepository.findByName("USER_NORMAL"));
@@ -203,6 +204,15 @@ public class UserService {
             }
         }
         return false;
+    }
+
+    public void forgotPasword(UserDTO dto) {
+        var user = this.userRepository.findByEmail(dto.getEmail());
+        if (user != null) {
+            this.mailService.sendOTPToEmail(user, " Là Mã Khôi Phục Mật Khẩu Sound Clound Account Của Bạn", true);
+        } else {
+            throw new ResourceNotFoundException("User Email", dto.getEmail());
+        }
     }
 
 }
