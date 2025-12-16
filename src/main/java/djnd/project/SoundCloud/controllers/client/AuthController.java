@@ -28,6 +28,7 @@ import djnd.project.SoundCloud.services.UserService;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
 import djnd.project.SoundCloud.utils.error.PasswordMismatchException;
+import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -148,11 +149,43 @@ public class AuthController {
 
     }
 
+    /*
+     * dto: email
+     */
     @PostMapping("/forgot-password/request")
     @ApiMessage("Forgot password")
-    public ResponseEntity<Void> forgorPassword(@RequestBody UserDTO dto) {
+    public ResponseEntity<?> forgotPassword(@RequestBody UserDTO dto) {
         this.userService.forgotPasword(dto);
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok("Send OTP success!");
+    }
+
+    /*
+     * dto: one_time_password, email
+     */
+    @PostMapping("/forgot-password/verify")
+    @ApiMessage("Verify OTP")
+    public ResponseEntity<?> verifyOTP(@RequestBody UserDTO dto) {
+        if (this.userService.verifyOTP(dto)) {
+            return ResponseEntity.ok("Redirect to page update password");
+        } else {
+            throw new ResourceNotFoundException("User Email", dto.getEmail());
+
+        }
+    }
+
+    /*
+     * dto: email, password, confirm_password
+     */
+    @PatchMapping("/forgot-password/update")
+    @ApiMessage("Update password")
+    public ResponseEntity<?> updatePassword(@RequestBody UserDTO dto) {
+        if (userService.updatePassword(dto)) {
+            var cookie = ResponseCookie.from("refresh_token", "").httpOnly(true).secure(true).path("/").maxAge(0)
+                    .build();
+            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body("Update password succefully");
+        }
+        throw new ResourceNotFoundException("User Email", dto.getEmail());
     }
 
 }

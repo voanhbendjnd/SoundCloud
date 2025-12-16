@@ -2,6 +2,7 @@ package djnd.project.SoundCloud.services;
 
 import java.util.stream.Collectors;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +48,7 @@ public class UserService {
         var user = new User();
         user.setEmail(dto.getEmail());
         user.setName(dto.getName());
+        user.setAccept(false);
         user.setPassword(dto.getManagementPassword().getPassword());
         var lastUser = this.userRepository.save(user);
         return lastUser.getId();
@@ -116,6 +118,7 @@ public class UserService {
         var user = new User();
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
+        user.setAccept(false);
         user.setPassword(this.passwordEncoder.encode(dto.getManagementPassword().getConfirmPassword()));
         user.setRole(this.roleRepository.findByName("USER_NORMAL"));
         var lastUser = this.userRepository.save(user);
@@ -212,6 +215,48 @@ public class UserService {
             this.mailService.sendOTPToEmail(user, " Là Mã Khôi Phục Mật Khẩu Sound Clound Account Của Bạn", true);
         } else {
             throw new ResourceNotFoundException("User Email", dto.getEmail());
+        }
+    }
+
+    public boolean verifyOTP(UserDTO dto) {
+        var user = this.userRepository.findByEmail(dto.getEmail());
+        if (user != null) {
+            if (!user.isOTPRequired()) {
+                throw new BadCredentialsException("OTP expires!");
+            }
+            if (this.passwordEncoder.matches(dto.getOneTimePassword(), user.getOneTimePassword())) {
+                user.setAccept(true);
+                this.userRepository.save(user);
+                return true;
+            } else {
+                throw new PasswordMismatchException("OTP wrong!");
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public boolean updatePassword(UserDTO dto) {
+        var user = this.userRepository.findByEmail(dto.getEmail());
+        if (user != null) {
+            if (user.isAccept()) {
+                if (dto.getManagementPassword().getConfirmPassword()
+                        .equals(dto.getManagementPassword().getPassword())) {
+                    user.setPassword(this.passwordEncoder.encode(dto.getManagementPassword().getConfirmPassword()));
+                    user.setRefreshToken(null);
+                    this.sessionManager.invalidateSession(user.getEmail());
+                    user.setAccept(false);
+                    this.userRepository.save(user);
+                    return true;
+                } else {
+                    throw new PasswordMismatchException("Password and Confirm Password is not the same!");
+                }
+            } else {
+                throw new BadCredentialsException("You cannot update password!");
+            }
+
+        } else {
+            return false;
         }
     }
 

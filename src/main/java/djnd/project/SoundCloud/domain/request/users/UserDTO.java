@@ -23,4 +23,6 @@ public class UserDTO {
     @Valid
     @JsonProperty("management_password")
     private ManagementPassword managementPassword;
+    @JsonProperty("one_time_password")
+    private String oneTimePassword;
 }
